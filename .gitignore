@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+
+# SLURM job logs
+slurm_out/
+slurm-*.out
+*_%A_%a.out
+*_%A_%a.err
+*.out
+*.err
+*.log
+
+# Pipeline intermediates / outputs
+*.sam
+*.bam
+*.bai
+*.ciri
+*.bsj2.*
+*.bed
+*.bed12
+*.genePred
+*.fq.gz
+*.fastq.gz
+*.fastp.json
+*.fastp.html
+multiqc_*
+*_fastqc.zip
+*_fastqc.html
+
+# Conda / environment
+.conda/
+*.yml.lock
