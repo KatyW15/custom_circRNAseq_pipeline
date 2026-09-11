@@ -57,8 +57,9 @@ set -euo pipefail
 ###########
 module purge
 module load miniforge
-#activate my circrna env with all dependancies (bwa, hisat2, stringtie, samtools, ciriquant)
-conda activate circrna
+#activate my ciriquant env (bwa=0.7.17, hisat2=2.2.0, stringtie=2.1.1, samtools>=1.10, ciriquant, python=3.9)
+#separate from circrna env because CIRIquant breaks on python>=3.12 (distutils removed)
+conda activate ciriquant
 
 echo ____________________________________
 which CIRIquant bwa hisat2 stringtie samtools

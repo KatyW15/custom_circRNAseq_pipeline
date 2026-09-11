@@ -41,7 +41,7 @@ set -euo pipefail
 # Variables
 ###########
 SAMPLESHEET="/projects/$USER/HNSCC_analysis/scripts/master_samplesheet.csv"
-ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis"
+ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis/circRNAseq"
 CIRI2DIR="${ANALYSIS_DIR}/circRNAseq/ciri2"
 OUTDIR="${ANALYSIS_DIR}/consensus"
 

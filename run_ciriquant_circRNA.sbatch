@@ -48,8 +48,9 @@ set -euo pipefail
 ###########
 module purge
 module load miniforge
-#activate my circrna env with all dependancies (bwa, hisat2, stringtie, samtools, ciriquant)
-conda activate circrna
+#activate my ciriquant env (bwa=0.7.17, hisat2=2.2.0, stringtie=2.1.1, samtools>=1.10, ciriquant, python=3.9)
+#separate from circrna env because CIRIquant breaks on python>=3.12 (distutils removed)
+conda activate ciriquant
 
 echo ____________________________________
 which CIRIquant bwa hisat2 stringtie samtools
@@ -60,10 +61,10 @@ echo ____________________________________
 # Variables
 ###########
 SAMPLESHEET="/projects/$USER/HNSCC_analysis/scripts/master_samplesheet.csv"
-ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis"
-TRIMDIR="${ANALYSIS_DIR}/circRNAseq/trimmed"   # trimmed FASTQs from run_fastp_circRNA.sbatch
+ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis/circRNAseq"
+TRIMDIR="${ANALYSIS_DIR}/trimmed"   # trimmed FASTQs from run_fastp_circRNA.sbatch
 CONSENSUS_DIR="${ANALYSIS_DIR}/consensus"  # from build_bsj_consensus.sbatch (cohort-wide, not modality-nested)
-OUTDIR="${ANALYSIS_DIR}/ciriquant"
+OUTDIR="${ANALYSIS_DIR}/ciriquant_noRNaseRcorrection"
 THREADS="${SLURM_CPUS_PER_TASK:-8}"
 LIBRARY_TYPE=2                             # reverse (fr-firststrand)
 

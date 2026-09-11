@@ -2,7 +2,7 @@
 #
 # Passed to `CIRIquant --config`. This file is the human-readable TEMPLATE;
 # run_ciriquant_circRNA.sbatch writes a working copy at run time (absolute tool
-# paths from the active `circrna` env, $USER expanded) so you normally don't
+# paths from the active `ciriquant` env, $USER expanded) so you normally don't
 # edit this one. Kept here so the reference layout is documented and version
 # controlled.
 #
