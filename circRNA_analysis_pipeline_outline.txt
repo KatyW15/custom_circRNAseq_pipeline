@@ -16,6 +16,9 @@ DATA / KEY FACTS
   meaningless). Accurate expression requires a matched RNase R(-) "mock"
   (total RNA) library per sample + CIRIquant --RNaseR correction. Without a
   mock, report BSJ counts / CPM only.
+  Here: the master samplesheet "rnaseq" libraries (ribo-depleted total RNA,
+  same samples, NOT a dedicated mock aliquot) are the RNase R(-) reference --
+  see STEP 6. Confirmed ribo-depleted (not poly-A), so usable.
 
 REFERENCES  (same build as the rest of the HNSCC pipeline)
 ---------------------------------------------------------
@@ -79,6 +82,10 @@ STEP 4 - BSJ detection  (multi-tool consensus)
   Callers (run in parallel on the trimmed reads):
     - CIRI2:   perl CIRI2.pl -I aln.sam -O out.ciri -F ref.fa -A gtf -G log -T N
                from the BWA-MEM SAM above. First-pass filter: #junction_reads >= 2.
+               Output:
+               .ciri (unfiltered bsjs)
+               .bsj2.ciri (bsj counts >=2)
+               .bsj2.bed (bed file coordinates of identified bsjs)
     - CIRCexplorer2 (implement later)
     - find_circ (implement later)
   Consensus: keep circRNAs detected by >= 2 of the 3 tools. (implement later)
@@ -91,7 +98,7 @@ STEP 4 - BSJ detection  (multi-tool consensus)
   run (--tools circexplorer2,ciri,find_circ --min_tools 2 --bsj_reads 2).
 
   Why CIRI2 is run separately (not just inside CIRIquant):
-    - it is one of the consensus callers;
+    - it is one of 3 consensus callers so running separately allows for comparison wiht other tools;
     - lets us control BWA-MEM params (-T 19);
     - CIRIquant would otherwise run its own CIRI2 with fixed params.
 
@@ -111,26 +118,83 @@ STEP 5 - Quantification  (CIRIquant)
   junction ratio, CPM  (SAMPLE.gtf).
 
 ----------------------------------------------------------------
-STEP 6 - RNase R effect correction  (needed for cross-sample expression)
+STEP 6 - Total RNA-seq branch: RNase R correction + validation
 ----------------------------------------------------------------
-  Requires a matched RNase R(-) mock / total-RNA library per sample.
-  A) CIRIquant on the RNase R(+) library:
-       CIRIquant --config config.yml -1 RNaseR_1 -2 RNaseR_2 \
-                 --library-type 2 --no-gene -o RNaseR -p RNaseR
-  B) CIRIquant on the matched mock library, corrected against A:
-       CIRIquant --config config.yml -1 mock_1 -2 mock_2 \
-                 --library-type 2 -o corrected -p corrected \
-                 --RNaseR RNaseR/RNaseR.gtf
-  Output B = estimated pre-treatment expression (GMM fit on circRNAs seen in
-  both libraries); header carries the RNase R enrichment efficiency.
-  Use the corrected values for all cross-sample / tumor-vs-normal comparison.
+  Matched RNase R(-) ribo-depleted total RNA-seq libraries (master samplesheet
+  modality "rnaseq") for the same samples. Used two ways.
+
+  All per-sample total RNA-seq outputs go under .../total_RNAseq/ sub-dirs so
+  they never mix with the circRNA-seq outputs:
+    trimmed/total_RNAseq/        QC/total_RNAseq/{raw_FastQC,trimmed}/
+    bwa_mapped/total_RNAseq/     ciri2/total_RNAseq/
+    ciriquant/total_RNAseq/      (validation/ stays top-level -- cross-dataset product)
+
+  Pre-processing is submitted as one dependency chain, job_inchain_totalRNAseq.sh:
+    trim -> bwa -> ciri2   (array stages, --dependency=aftercorr: task N waits
+                            only on task N of the previous stage, so one bad
+                            sample drops out instead of blocking all of them)
+    -> fastQC              (raw-read QC, single job, afterany on ciri2)
+    -> flagstat            (run_flagstat_totalRNAseq.sbatch: samtools flagstat
+                            over the BWA SAMs + mapping-rate summary; afterany on
+                            bwa, so it is not held behind the slow ciri2 step)
+  Both QC jobs use afterany so a failed sample does not block them.
+  CIRIquant (6a) and the strandedness check are run separately, not in the chain.
+
+  6a. RNase R effect correction
+      run_ciriquant_totalRNAseq.sbatch
+        CIRIquant on the total RNA-seq (mock) library with
+          --RNaseR <matched circRNA-seq CIRIquant gtf from STEP 5>
+        No separate "CIRIquant on the RNase R(+) library" step -- the STEP 5
+        output (ciriquant/<circ sample>/<circ sample>.gtf, already the consensus
+        locus set) IS that input. CIRIquant detects de novo in the mock, takes
+        the overlap with the RNase R(+) set, fits a Gaussian mixture model to the
+        per-circRNA enrichment ratios, writes enrichment-corrected (pre-treatment)
+        expression. Output gtf header carries the estimated RNase R efficiency.
+        NOT passed: --bed (locus set inherited from the --RNaseR gtf),
+                    --no-gene (mock has real linear signal -> keep gene quant).
+        Pairing: <patient>_<tissue>_rnaseq  <->  <patient>_<tissue>_circrnaseq.
+        --library-type for the rnaseq libraries is NOT assumed to match the
+        circRNA-seq set (different prep/batch) -- confirm with STEP 0's infer
+        script pointed at an rnaseq sample.
+      Keeps BOTH:
+        uncorrected  ciriquant/<circ sample>/...                        (STEP 5, untouched)
+        corrected    ciriquant/total_RNAseq/<rnaseq sample>/<rnaseq sample>.gtf
+      Use corrected values for cross-sample / tumor-vs-normal expression; keep
+      uncorrected BSJ/CPM as a sensitivity check.
+      Approximation: the rnaseq libraries are a different prep/batch, so a batch
+      offset is folded into the efficiency estimate. QC: efficiency should be
+      consistent across samples; corrected values should correlate better with
+      the total RNA-seq than uncorrected.
+
+  6b. Orthogonal validation  (which circRNAs are seen in non-enriched data)
+      run_fastp_totalRNAseq.sbatch -> run_bwa_totalRNAseq.sbatch (-T 19, unsorted)
+        -> run_ciri2_totalRNAseq.sbatch  (de novo CIRI2 on the total RNA-seq;
+           output to ciri2/total_RNAseq/ -- separate from the circRNA ciri2/)
+      build_bsj_validation.sbatch
+        Stranded single-linkage merge (+/- SLOP bp, same method as
+        build_bsj_consensus) of the circRNA-seq consensus set vs the total
+        RNA-seq CIRI2 calls. A consensus circRNA also found in non-enriched data
+        is much less likely to be an RNase R artifact (rolling-circle / template
+        switching) -> per-circRNA confidence flag.
+      Output (validation/):
+        <circ sample>.validation.bed    per consensus locus: found_in_totalRNA
+                                        (0/1) + total-RNA BSJ read count
+        pair_overview.tsv               per pair: n_consensus, n_validated, pct
+        cohort.circRNA_vs_totalRNA.tsv  per locus: n_circseq / n_totalRNA
+                                        samples, validated (yes/no)
+
+  (run_fastqc_totalRNAseq.sbatch = raw QC on the rnaseq libraries; redundant if
+   nf-core/rnaseq already ran FastQC.)
 
 ----------------------------------------------------------------
 STEP 7 - Downstream
 ----------------------------------------------------------------
   prep_CIRIquant  -> circRNA expression / BSJ / junction-ratio matrices
+    primary input : ciriquant_RNaseR/ (STEP 6a corrected) gtfs
+    also build the matrix from ciriquant/ (uncorrected) as a sensitivity check
   CIRI_DE_replicate (edgeR wrapper) -> tumor vs normal differential circRNA
-  circRNA host-gene / isoform annotation as needed.
+  Annotate each circRNA with the STEP 6b validation flag (found in matched
+  total RNA-seq) and circRNA host-gene / isoform info.
 
 ================================================================
 CROSS-CHECK

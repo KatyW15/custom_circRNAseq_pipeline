@@ -1,0 +1,30 @@
+# CIRIquant reference config -- STEP 5 of the circRNA-seq pipeline.
+#
+# Passed to `CIRIquant --config`. This file is the human-readable TEMPLATE;
+# run_ciriquant_circRNA.sbatch writes a working copy at run time (absolute tool
+# paths from the active `circrna` env, $USER expanded) so you normally don't
+# edit this one. Kept here so the reference layout is documented and version
+# controlled.
+#
+# None of these paths need a new build -- they already exist from earlier steps:
+#   fasta / gtf   downloaded by HNSCC_pipeline_build/download_references.sh
+#   bwa_index     step 3, run_bwa_index.sbatch  (index files sit next to the FASTA,
+#                 so the prefix is the FASTA path itself, .fa and all)
+#   hisat_index   step 0, run_infer_strandedness_test.sbatch  (prefix has no extension)
+#
+# CIRIquant also expects <fasta>.fai next to the FASTA (samtools faidx; built by
+# download_references.sh).
+
+name: hg38_gencode_v50
+
+tools:
+  bwa: bwa
+  hisat2: hisat2
+  stringtie: stringtie
+  samtools: samtools
+
+reference:
+  fasta: /projects/YOUR_USER/HNSCC_analysis/reference_genomes/hg38/GRCh38.primary_assembly.genome.fa
+  gtf: /projects/YOUR_USER/HNSCC_analysis/reference_genomes/gencode/gencode.v50.annotation.gtf
+  bwa_index: /projects/YOUR_USER/HNSCC_analysis/reference_genomes/hg38/GRCh38.primary_assembly.genome.fa
+  hisat_index: /projects/YOUR_USER/HNSCC_analysis/reference_genomes/hg38/GRCh38.primary_assembly.genome_hisat2

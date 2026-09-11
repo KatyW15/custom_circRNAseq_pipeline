@@ -8,8 +8,7 @@
 #SBATCH --qos=cpu-normal
 #SBATCH -n 1 -c 8  # ask for number of nodes/cores
 #SBATCH --mem=32GB  # Specify memory allocation
-#SBATCH --mail-type=FAIL,END
-#SBATCH --mail-user=YOUR_EMAIL@example.com
+
 
 set -euo pipefail
 
@@ -53,10 +52,11 @@ GTF="${REF_DIR}/gencode/gencode.v50.annotation.gtf"
 HISAT_INDEX="${REF_DIR}/hg38/GRCh38.primary_assembly.genome_hisat2"
 BED12="${REF_DIR}/gencode/gencode.v50.annotation.bed12"
 
-FASTQ_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis/trimmed"
+#FASTQ_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis/trimmed" ##circRNAseq
+FASTQ_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis/total_RNAseq/trimmed" ##total RNA-seq
 SAMPLE="SAMPLE01_tumor"
-R1="${FASTQ_DIR}/${SAMPLE}_circrnaseq_R1.fq.gz"
-R2="${FASTQ_DIR}/${SAMPLE}_circrnaseq_R2.fq.gz"
+R1="${FASTQ_DIR}/${SAMPLE}*_R1.fq.gz"
+R2="${FASTQ_DIR}/${SAMPLE}*_R2.fq.gz"
 
 WORKDIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis/strand_check"
 N_READS=2000000
