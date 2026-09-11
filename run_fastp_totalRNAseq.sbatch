@@ -8,8 +8,6 @@
 #SBATCH --qos=cpu-normal
 #SBATCH -n 1 -c 8       # 8 cores -> fastp -w 8
 #SBATCH --mem=16GB
-#SBATCH --mail-type=FAIL,END
-#SBATCH --mail-user=YOUR_EMAIL@example.com
 #SBATCH --array=1-65
 
 
@@ -22,7 +20,7 @@
 # STEP 6 total RNA-seq branch -- trim.
 # Same fastp settings as the circRNA branch (run_fastp_circRNA.sbatch) so the
 # two data sets are processed identically before detection / quantification.
-# Outputs -> trimmed/total_RNAseq/ and QC/total_RNAseq/trimmed/.
+# Outputs -> total_RNAseq/trimmed/ and QC/totalRNAseq/trimmed/.
 # ---------------------------------------------------------------------------
 
 set -euo pipefail
@@ -46,8 +44,9 @@ echo ____________________________________
 ###########
 SAMPLESHEET="/projects/$USER/HNSCC_analysis/scripts/master_samplesheet.csv"
 ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis"
-TRIMDIR="${ANALYSIS_DIR}/trimmed/total_RNAseq"      # trimmed FASTQs
-QCDIR="${ANALYSIS_DIR}/QC/total_RNAseq/trimmed"     # fastp json/html reports
+MODALITY_DIR="${ANALYSIS_DIR}/total_RNAseq"         # trimmed/bwa_mapped/ciri2 all nest here
+TRIMDIR="${MODALITY_DIR}/trimmed"                   # trimmed FASTQs
+QCDIR="/projects/$USER/HNSCC_analysis/my_circRNAseq_analysis/QC/totalRNAseq/trimmed"   # fastp json/html reports
 THREADS="${SLURM_CPUS_PER_TASK:-8}"
 
 mkdir -p "${TRIMDIR}" "${QCDIR}"

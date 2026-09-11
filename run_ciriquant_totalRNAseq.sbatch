@@ -8,8 +8,6 @@
 #SBATCH --qos=cpu-normal
 #SBATCH -n 1 -c 8       # 8 cores -> CIRIquant -t 8
 #SBATCH --mem=48GB
-#SBATCH --mail-type=FAIL,END
-#SBATCH --mail-user=YOUR_EMAIL@example.com
 #SBATCH --array=1-65
 
 #
@@ -72,7 +70,7 @@ echo ____________________________________
 ###########
 SAMPLESHEET="/projects/$USER/HNSCC_analysis/scripts/master_samplesheet.csv"
 ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis"
-TRIMDIR="${ANALYSIS_DIR}/trimmed/total_RNAseq"          # trimmed FASTQs from run_fastp_totalRNAseq.sbatch
+TRIMDIR="${ANALYSIS_DIR}/total_RNAseq/trimmed"          # trimmed FASTQs from run_fastp_totalRNAseq.sbatch
 CIRC_CIRIQUANT_DIR="${ANALYSIS_DIR}/ciriquant"          # RNase R(+) results from run_ciriquant_circRNA.sbatch
 OUTDIR="${ANALYSIS_DIR}/ciriquant/total_RNAseq"         # enrichment-corrected results
 THREADS="${SLURM_CPUS_PER_TASK:-8}"

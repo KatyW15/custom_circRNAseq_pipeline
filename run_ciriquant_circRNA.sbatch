@@ -8,8 +8,6 @@
 #SBATCH --qos=cpu-normal
 #SBATCH -n 1 -c 8       # 8 cores -> CIRIquant -t 8
 #SBATCH --mem=48GB
-#SBATCH --mail-type=FAIL,END
-#SBATCH --mail-user=YOUR_EMAIL@example.com
 #SBATCH --array=1-57
 
 ## hard coded array above, if want to define array in command line see below
@@ -63,8 +61,8 @@ echo ____________________________________
 ###########
 SAMPLESHEET="/projects/$USER/HNSCC_analysis/scripts/master_samplesheet.csv"
 ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis"
-TRIMDIR="${ANALYSIS_DIR}/trimmed"          # trimmed FASTQs from run_fastp_circRNA.sbatch
-CONSENSUS_DIR="${ANALYSIS_DIR}/consensus"  # from build_bsj_consensus.sbatch
+TRIMDIR="${ANALYSIS_DIR}/circRNAseq/trimmed"   # trimmed FASTQs from run_fastp_circRNA.sbatch
+CONSENSUS_DIR="${ANALYSIS_DIR}/consensus"  # from build_bsj_consensus.sbatch (cohort-wide, not modality-nested)
 OUTDIR="${ANALYSIS_DIR}/ciriquant"
 THREADS="${SLURM_CPUS_PER_TASK:-8}"
 LIBRARY_TYPE=2                             # reverse (fr-firststrand)

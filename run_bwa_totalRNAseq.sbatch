@@ -8,8 +8,6 @@
 #SBATCH --qos=cpu-normal
 #SBATCH -n 1 -c 16      # 16 cores -> bwa mem -t 16
 #SBATCH --mem=32GB
-#SBATCH --mail-type=FAIL,END
-#SBATCH --mail-user=YOUR_EMAIL@example.com
 #SBATCH --array=1-65
 
 
@@ -58,8 +56,9 @@ echo ____________________________________
 ###########
 SAMPLESHEET="/projects/$USER/HNSCC_analysis/scripts/master_samplesheet.csv"
 ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis"
-TRIMDIR="${ANALYSIS_DIR}/trimmed/total_RNAseq"      # trimmed FASTQs from run_fastp_totalRNAseq.sbatch
-ALIGNDIR="${ANALYSIS_DIR}/bwa_mapped/total_RNAseq"  # output SAMs
+MODALITY_DIR="${ANALYSIS_DIR}/total_RNAseq"         # trimmed/bwa_mapped/ciri2 all nest here
+TRIMDIR="${MODALITY_DIR}/trimmed"     # trimmed FASTQs from run_fastp_totalRNAseq.sbatch
+ALIGNDIR="${MODALITY_DIR}/bwa_mapped" # output SAMs
 THREADS="${SLURM_CPUS_PER_TASK:-16}"
 
 # BWA index prefix -- the .amb/.ann/.bwt/.pac/.sa files must already exist

@@ -8,8 +8,6 @@
 #SBATCH --qos=cpu-normal
 #SBATCH -n 1 -c 1      # bwa index is single-threaded
 #SBATCH --mem=8GB
-#SBATCH --mail-type=FAIL,END
-#SBATCH --mail-user=YOUR_EMAIL@example.com
 
 set -euo pipefail
 

@@ -10,8 +10,6 @@
 #SBATCH --mem=256GB     # CIRI2 holds all candidate junction reads in RAM during
                         # scan 1; needs at least 100GB, running with minimum amem mem request
                         # (256GB) because amem node wait times are less.
-#SBATCH --mail-type=FAIL,END
-#SBATCH --mail-user=YOUR_EMAIL@example.com
 #SBATCH --array=1-57
 
 ## hard coded array above, if want to define array in command line see below
@@ -69,8 +67,9 @@ echo ____________________________________
 ###########
 SAMPLESHEET="/projects/$USER/HNSCC_analysis/scripts/master_samplesheet.csv"
 ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis"
-ALIGNDIR="${ANALYSIS_DIR}/bwa_mapped"   # input SAMs from run_bwa_circRNA.sbatch
-OUTDIR="${ANALYSIS_DIR}/ciri2"          # CIRI2 output
+MODALITY_DIR="${ANALYSIS_DIR}/circRNAseq"   # trimmed/bwa_mapped/ciri2 all nest here
+ALIGNDIR="${MODALITY_DIR}/bwa_mapped"   # input SAMs from run_bwa_circRNA.sbatch
+OUTDIR="${MODALITY_DIR}/ciri2"          # CIRI2 output
 THREADS="${SLURM_CPUS_PER_TASK:-8}"
 
 # Same references as the rest of the HNSCC build

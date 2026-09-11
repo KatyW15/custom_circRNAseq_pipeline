@@ -8,8 +8,6 @@
 #SBATCH --qos=cpu-normal
 #SBATCH -n 1 -c 1
 #SBATCH --mem=4GB
-#SBATCH --mail-type=FAIL,END
-#SBATCH --mail-user=YOUR_EMAIL@example.com
 
 #
 # NOT part of job_inchain_totalRNAseq.sh -- run this after both
@@ -30,7 +28,7 @@
 # Input:
 #   circRNA-seq per-sample consensus  ${ANALYSIS_DIR}/consensus/<circ sample>.consensus.bed
 #                                       (BED6+2: chr start end name reads strand n_tools tools_csv)
-#   total RNA-seq CIRI2 loci          ${ANALYSIS_DIR}/ciri2/total_RNAseq/<rnaseq sample>.bsj2.bed
+#   total RNA-seq CIRI2 loci          ${ANALYSIS_DIR}/total_RNAseq/ciri2/<rnaseq sample>.bsj2.bed
 #                                       (BED6: chr start end name reads strand)
 #
 # Pairing (sample_id = <patient>_<tissue>_<modality>):
@@ -51,8 +49,8 @@ set -euo pipefail
 ###########
 SAMPLESHEET="/projects/$USER/HNSCC_analysis/scripts/master_samplesheet.csv"
 ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis"
-CONSENSUS_DIR="${ANALYSIS_DIR}/consensus"              # from build_bsj_consensus.sbatch
-CIRI2_RNA_DIR="${ANALYSIS_DIR}/ciri2/total_RNAseq"     # from run_ciri2_totalRNAseq.sbatch
+CONSENSUS_DIR="${ANALYSIS_DIR}/consensus"              # from build_bsj_consensus.sbatch (cohort-wide, not modality-nested)
+CIRI2_RNA_DIR="${ANALYSIS_DIR}/total_RNAseq/ciri2"     # from run_ciri2_totalRNAseq.sbatch
 OUTDIR="${ANALYSIS_DIR}/validation"
 
 SLOP="${SLOP:-5}"                       # bp margin for matching BSJs (match build_bsj_consensus)

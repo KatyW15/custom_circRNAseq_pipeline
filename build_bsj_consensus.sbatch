@@ -8,8 +8,6 @@
 #SBATCH --qos=cpu-normal
 #SBATCH -n 1 -c 1
 #SBATCH --mem=4GB
-#SBATCH --mail-type=FAIL,END
-#SBATCH --mail-user=YOUR_EMAIL@example.com
 
 
 # ---------------------------------------------------------------------------
@@ -29,7 +27,7 @@
 #   2. set MIN_TOOLS=2  -- the >=2-of-3 precision filter from the outline
 #
 # Input  (per sample, BED6: chr start[0-based] end name bsj_reads strand):
-#   ${CIRI2DIR}/${SM}.bsj2.bed        from run_ciri2_circRNA.sbatch
+#   ${CIRI2DIR}/${SM}.bsj2.bed        from run_ciri2_circRNA.sbatch (circRNAseq/ciri2/)
 # Output (${OUTDIR} = ${ANALYSIS_DIR}/consensus):
 #   ${SM}.consensus.bed              per-sample consensus, BED6+2
 #                                    (extra cols: n_tools, tools_csv)
@@ -44,7 +42,7 @@ set -euo pipefail
 ###########
 SAMPLESHEET="/projects/$USER/HNSCC_analysis/scripts/master_samplesheet.csv"
 ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis"
-CIRI2DIR="${ANALYSIS_DIR}/ciri2"
+CIRI2DIR="${ANALYSIS_DIR}/circRNAseq/ciri2"
 OUTDIR="${ANALYSIS_DIR}/consensus"
 
 MIN_TOOLS="${MIN_TOOLS:-1}"   # bump to 2 once a second caller is wired in

@@ -13,7 +13,7 @@
 ## Submit:  sbatch run_flagstat_totalRNAseq.sbatch
 ## Re-do every report from scratch:  FORCE=1 sbatch run_flagstat_totalRNAseq.sbatch
 ## Point at a different folder of alignments:
-##   SAMDIR=/scratch/alpine/$USER/.../bwa_mapped sbatch run_flagstat_totalRNAseq.sbatch
+##   SAMDIR=/scratch/alpine/$USER/.../circRNAseq/bwa_mapped sbatch run_flagstat_totalRNAseq.sbatch
 
 # ---------------------------------------------------------------------------
 # Alignment QC for the total RNA-seq validation branch: run `samtools flagstat`
@@ -44,7 +44,7 @@ ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis"
 
 # Folder holding the alignments to profile. Default: the BWA-MEM SAMs from
 # run_bwa_totalRNAseq.sbatch. Override on the command line with SAMDIR=... sbatch run_flagstat_totalRNAseq.sbatch
-SAMDIR="${SAMDIR:-${ANALYSIS_DIR}/bwa_mapped/total_RNAseq}"
+SAMDIR="${SAMDIR:-${ANALYSIS_DIR}/total_RNAseq/bwa_mapped}"
 
 # File extension to look for (sam | bam | cram).
 EXT="${EXT:-sam}"

@@ -52,7 +52,7 @@ GTF="${REF_DIR}/gencode/gencode.v50.annotation.gtf"
 HISAT_INDEX="${REF_DIR}/hg38/GRCh38.primary_assembly.genome_hisat2"
 BED12="${REF_DIR}/gencode/gencode.v50.annotation.bed12"
 
-#FASTQ_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis/trimmed" ##circRNAseq
+#FASTQ_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis/circRNAseq/trimmed" ##circRNAseq
 FASTQ_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis/total_RNAseq/trimmed" ##total RNA-seq
 SAMPLE="SAMPLE01_tumor"
 R1="${FASTQ_DIR}/${SAMPLE}*_R1.fq.gz"

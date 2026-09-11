@@ -8,8 +8,6 @@
 #SBATCH --qos=cpu-normal
 #SBATCH -n 1 -c 8       # 8 cores -> FastQC -t 8
 #SBATCH --mem=16GB
-#SBATCH --mail-type=FAIL,END
-#SBATCH --mail-user=YOUR_EMAIL@example.com
 
 set -euo pipefail
 
@@ -32,7 +30,7 @@ echo ____________________________________
 # Variables
 ###########
 SAMPLESHEET="/projects/$USER/HNSCC_analysis/scripts/master_samplesheet.csv"
-OUTDIR="/projects/$USER/HNSCC_analysis/my_circRNAseq_analysis/QC/raw_FastQC"
+OUTDIR="/projects/$USER/HNSCC_analysis/my_circRNAseq_analysis/QC/circRNAseq/raw_FastQC"
 MODALITY="circrnaseq"          # value in the 'modality' column to keep
 THREADS="${SLURM_CPUS_PER_TASK:-8}"
 
