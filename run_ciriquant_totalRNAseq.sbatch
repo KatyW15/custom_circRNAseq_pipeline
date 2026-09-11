@@ -72,7 +72,7 @@ echo ____________________________________
 SAMPLESHEET="/projects/$USER/HNSCC_analysis/scripts/master_samplesheet.csv"
 ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis"
 TRIMDIR="${ANALYSIS_DIR}/total_RNAseq/trimmed"          # trimmed FASTQs from run_fastp_totalRNAseq.sbatch
-CIRC_CIRIQUANT_DIR="${ANALYSIS_DIR}/ciriquant"          # RNase R(+) results from run_ciriquant_circRNA.sbatch
+CIRC_CIRIQUANT_DIR="${ANALYSIS_DIR}/circRNAseq/ciriquant_noRNaseRcorrection"   # RNase R(+) results from run_ciriquant_circRNA.sbatch
 OUTDIR="${ANALYSIS_DIR}/ciriquant/total_RNAseq"         # enrichment-corrected results
 THREADS="${SLURM_CPUS_PER_TASK:-8}"
 

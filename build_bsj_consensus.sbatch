@@ -42,7 +42,7 @@ set -euo pipefail
 ###########
 SAMPLESHEET="/projects/$USER/HNSCC_analysis/scripts/master_samplesheet.csv"
 ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis/circRNAseq"
-CIRI2DIR="${ANALYSIS_DIR}/circRNAseq/ciri2"
+CIRI2DIR="${ANALYSIS_DIR}/ciri2"
 OUTDIR="${ANALYSIS_DIR}/consensus"
 
 MIN_TOOLS="${MIN_TOOLS:-1}"   # bump to 2 once a second caller is wired in
