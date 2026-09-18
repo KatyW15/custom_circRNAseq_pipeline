@@ -32,8 +32,15 @@ REFERENCES  (same build as the rest of the HNSCC pipeline)
 
 ENVIRONMENTS
 ------------
-- conda env "circrna": fastqc, fastp, bwa, hisat2, stringtie, samtools,
-  ciriquant, seqtk, ucsc-gtftogenepred, ucsc-genepredtobed
+Six conda envs total; full package lists / version pins / create commands are
+in software_requirements.md. The two that matter for this outline:
+- conda env "circrna": fastqc, fastp, bwa, hisat2, stringtie, samtools, ciri2,
+  seqtk, ucsc-gtftogenepred, ucsc-genepredtobed
+- conda env "CIRIquant_github_env": official CIRIquant v1.1.3, native
+  Python 2.7.15 (CIRI-cookbook's own documented install method). Runs all
+  CIRIquant steps below (5, 6a). Replaces an earlier patched bioconda/
+  Python 3.11 "ciriquant" env, retired after repeatedly hitting new upstream
+  Python-2-only bugs -- see software_requirements.md "Retired: ciriquant".
 - conda env "rseqc": python=3.11, rseqc>=5
   (RSeQC is not compatible with the python 3.14 in the circrna env; call it
   via `conda run -n rseqc ...`)
@@ -116,6 +123,8 @@ STEP 5 - Quantification  (CIRIquant)
   CIRIquant internally: HISAT2 + StringTie (linear model), BWA + pseudo-
   circular reference + realignment. Outputs per circRNA: BSJ, FSJ,
   junction ratio, CPM  (SAMPLE.gtf).
+  Script: run_ciriquant_circRNA_py2.sbatch, in the CIRIquant_github_env env
+  (official Python 2 install -- see ENVIRONMENTS above).
 
 ----------------------------------------------------------------
 STEP 6 - Total RNA-seq branch: RNase R correction + validation
@@ -127,7 +136,8 @@ STEP 6 - Total RNA-seq branch: RNase R correction + validation
   they never mix with the circRNA-seq outputs:
     trimmed/total_RNAseq/        QC/total_RNAseq/{raw_FastQC,trimmed}/
     bwa_mapped/total_RNAseq/     ciri2/total_RNAseq/
-    ciriquant/total_RNAseq/      (validation/ stays top-level -- cross-dataset product)
+    (validation/ stays top-level -- cross-dataset product; RNase R corrected
+    results land in ciriquant_py2/ -- see 6a)
 
   Pre-processing is submitted as one dependency chain, job_inchain_totalRNAseq.sh:
     trim -> bwa -> ciri2   (array stages, --dependency=aftercorr: task N waits
@@ -141,24 +151,24 @@ STEP 6 - Total RNA-seq branch: RNase R correction + validation
   CIRIquant (6a) and the strandedness check are run separately, not in the chain.
 
   6a. RNase R effect correction
-      run_ciriquant_totalRNAseq.sbatch
+      run_ciriquant_RNaseR_corrected_py2.sbatch (CIRIquant_github_env, py2)
         CIRIquant on the total RNA-seq (mock) library with
           --RNaseR <matched circRNA-seq CIRIquant gtf from STEP 5>
         No separate "CIRIquant on the RNase R(+) library" step -- the STEP 5
-        output (ciriquant/<circ sample>/<circ sample>.gtf, already the consensus
-        locus set) IS that input. CIRIquant detects de novo in the mock, takes
-        the overlap with the RNase R(+) set, fits a Gaussian mixture model to the
-        per-circRNA enrichment ratios, writes enrichment-corrected (pre-treatment)
+        output (circRNAseq/ciriquant_noRNaseRcorrection_py2/<circ sample>/
+        <circ sample>.gtf, already the consensus locus set) IS that input.
+        CIRIquant detects de novo in the mock, takes the overlap with the
+        RNase R(+) set, fits a Gaussian mixture model to the per-circRNA
+        enrichment ratios, writes enrichment-corrected (pre-treatment)
         expression. Output gtf header carries the estimated RNase R efficiency.
         NOT passed: --bed (locus set inherited from the --RNaseR gtf),
                     --no-gene (mock has real linear signal -> keep gene quant).
         Pairing: <patient>_<tissue>_rnaseq  <->  <patient>_<tissue>_circrnaseq.
-        --library-type for the rnaseq libraries is NOT assumed to match the
-        circRNA-seq set (different prep/batch) -- confirm with STEP 0's infer
-        script pointed at an rnaseq sample.
+        --library-type 2 (reverse) -- confirmed for the rnaseq libraries too
+        (both batches checked, see STEP 0).
       Keeps BOTH:
-        uncorrected  ciriquant/<circ sample>/...                        (STEP 5, untouched)
-        corrected    ciriquant/total_RNAseq/<rnaseq sample>/<rnaseq sample>.gtf
+        uncorrected  circRNAseq/ciriquant_noRNaseRcorrection_py2/<circ sample>/...  (STEP 5, untouched)
+        corrected    ciriquant_py2/<rnaseq sample>/<rnaseq sample>.gtf
       Use corrected values for cross-sample / tumor-vs-normal expression; keep
       uncorrected BSJ/CPM as a sensitivity check.
       Approximation: the rnaseq libraries are a different prep/batch, so a batch
@@ -189,12 +199,21 @@ STEP 6 - Total RNA-seq branch: RNase R correction + validation
 ----------------------------------------------------------------
 STEP 7 - Downstream
 ----------------------------------------------------------------
-  prep_CIRIquant  -> circRNA expression / BSJ / junction-ratio matrices
-    primary input : ciriquant_RNaseR/ (STEP 6a corrected) gtfs
-    also build the matrix from ciriquant/ (uncorrected) as a sensitivity check
-  CIRI_DE_replicate (edgeR wrapper) -> tumor vs normal differential circRNA
-  Annotate each circRNA with the STEP 6b validation flag (found in matched
-  total RNA-seq) and circRNA host-gene / isoform info.
+  7a  build_ciriquant_matrix.sbatch  (CIRIquant_github_env, py2)
+      prep_CIRIquant + prepDE.py -> circRNA expression / BSJ / junction-ratio
+      matrices, in two modes:
+        corrected    primary input : ciriquant_py2/ (STEP 6a corrected)
+                     gtfs; only patients with a matched RNase R correction
+        uncorrected  sensitivity check : circRNAseq/ciriquant_noRNaseRcorrection_py2/
+                     (STEP 5, uncorrected) gtfs; every circRNA-seq sample
+      Tumor/normal grouping (T/C) + patient_id pairing read straight from
+      master_samplesheet.csv into each mode's sample.lst.
+  7b  run_ciri_de.sbatch  (CIRIquant_github_env, py2)
+      CIRI_DE_replicate (edgeR wrapper) -> tumor vs normal differential
+      circRNA, run on both modes from 7a. Requires R + edgeR in the separate
+      `ciriDE` env (not installed by default -- see script header).
+  TODO (not yet scripted): annotate each circRNA with the STEP 6b validation
+  flag (found in matched total RNA-seq) and circRNA host-gene / isoform info.
 
 ================================================================
 CROSS-CHECK

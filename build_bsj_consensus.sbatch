@@ -17,7 +17,7 @@
 # Merge the per-tool BSJ call sets for each sample into one consensus locus
 # set, tag every locus with how many (and which) tools called it, and keep
 # those passing MIN_TOOLS. Then slop-merge every sample's consensus into one
-# cohort-wide union BED -- the fixed locus set that run_ciriquant_circRNA.sbatch
+# cohort-wide union BED -- the fixed locus set that run_ciriquant_circRNA_py2.sbatch
 # quantifies in every sample (so the DE matrix has consistent rows).
 #
 # NOW: CIRI2 is the only caller wired in, so with MIN_TOOLS=1 this just
@@ -170,4 +170,4 @@ rm -f "${UNION_TMP}"
 echo "----"
 echo "cohort union: $(wc -l < "${UNION_BED}") loci -> ${UNION_BED}"
 echo "summary     : ${SUMMARY}"
-echo "next        : sbatch run_ciriquant_circRNA.sbatch"
+echo "next        : sbatch run_ciriquant_circRNA_py2.sbatch"

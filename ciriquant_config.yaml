@@ -1,10 +1,10 @@
 # CIRIquant reference config -- STEP 5 of the circRNA-seq pipeline.
 #
 # Passed to `CIRIquant --config`. This file is the human-readable TEMPLATE;
-# run_ciriquant_circRNA.sbatch writes a working copy at run time (absolute tool
-# paths from the active `ciriquant` env, $USER expanded) so you normally don't
-# edit this one. Kept here so the reference layout is documented and version
-# controlled.
+# run_ciriquant_circRNA_py2.sbatch writes a working copy at run time (absolute
+# tool paths from the active `CIRIquant_github_env` env, $USER expanded) so
+# you normally don't edit this one. Kept here so the reference layout is
+# documented and version controlled.
 #
 # None of these paths need a new build -- they already exist from earlier steps:
 #   fasta / gtf   downloaded by HNSCC_pipeline_build/download_references.sh

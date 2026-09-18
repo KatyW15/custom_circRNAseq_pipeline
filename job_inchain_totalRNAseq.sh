@@ -15,7 +15,7 @@
 #               SAMs + a mapping-rate summary table; afterany on bwa, so the
 #               summary is ready as soon as mapping finishes (not held behind
 #               the slow ciri2 step).
-# CIRIquant / RNase R correction (run_ciriquant_totalRNAseq.sbatch) and the
+# CIRIquant / RNase R correction (run_ciriquant_RNaseR_corrected_py2.sbatch) and the
 # strandedness check are NOT in this chain -- run those separately.
 #
 # This script just calls sbatch a few times and exits in seconds. Run it on a

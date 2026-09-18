@@ -33,11 +33,12 @@ and find_circ callers are outlined but not yet implemented here.
 | 4 | BSJ detection with CIRI2 from the BWA SAM; first-pass filter `#junction_reads >= 2`; emit BED of loci | [run_ciri2_circRNA.sbatch](run_ciri2_circRNA.sbatch) |
 | 4b | Locate `CIRI2.pl` before submitting step 4 | [check_ciri2.sh](check_ciri2.sh) |
 | 4c | Consensus BSJ set: merge per-tool BEDs, tag `n_tools`, keep ≥`MIN_TOOLS`; build cohort union BED. **CIRI2-only for now** (`MIN_TOOLS=1`); set `MIN_TOOLS=2` when CIRCexplorer2 / find_circ are added | [build_bsj_consensus.sbatch](build_bsj_consensus.sbatch) |
-| 5 | Quantification: CIRIquant (HISAT2 + StringTie linear model, pseudo-circular realignment), prior-guided (`--bed` consensus union), `--library-type 2` | [run_ciriquant_circRNA.sbatch](run_ciriquant_circRNA.sbatch), [ciriquant_config.yaml](ciriquant_config.yaml) |
-| 6a | **RNase R effect correction** (total RNA-seq branch): CIRIquant on the matched ribo-depleted total RNA-seq with `--RNaseR` = the step-5 circRNA-seq gtf. Keeps corrected (`ciriquant/total_RNAseq/`) **and** uncorrected (`ciriquant/`) | [run_ciriquant_totalRNAseq.sbatch](run_ciriquant_totalRNAseq.sbatch) |
+| 5 | Quantification: CIRIquant (HISAT2 + StringTie linear model, pseudo-circular realignment), prior-guided (`--bed` consensus union), `--library-type 2` | [run_ciriquant_circRNA_py2.sbatch](run_ciriquant_circRNA_py2.sbatch), [ciriquant_config.yaml](ciriquant_config.yaml) |
+| 6a | **RNase R effect correction** (total RNA-seq branch): CIRIquant on the matched ribo-depleted total RNA-seq with `--RNaseR` = the step-5 circRNA-seq gtf. Keeps corrected (`ciriquant_py2/`) **and** uncorrected (`circRNAseq/ciriquant_noRNaseRcorrection_py2/`) | [run_ciriquant_RNaseR_corrected_py2.sbatch](run_ciriquant_RNaseR_corrected_py2.sbatch) |
 | 6b | **Validation** (total RNA-seq branch): trim → BWA-MEM → CIRI2 on the total RNA-seq (+ FastQC and `samtools flagstat` QC), then intersect with the circRNA-seq consensus → per-circRNA "seen in non-enriched data" confidence flag | [run_fastp_totalRNAseq.sbatch](run_fastp_totalRNAseq.sbatch), [run_bwa_totalRNAseq.sbatch](run_bwa_totalRNAseq.sbatch), [run_ciri2_totalRNAseq.sbatch](run_ciri2_totalRNAseq.sbatch), [run_fastqc_totalRNAseq.sbatch](run_fastqc_totalRNAseq.sbatch), [run_flagstat_totalRNAseq.sbatch](run_flagstat_totalRNAseq.sbatch), [build_bsj_validation.sbatch](build_bsj_validation.sbatch) |
 | 6b-chain | Submit 6b pre-processing as a dependency chain: **trim → BWA → CIRI2** (array stages, `aftercorr` — one bad sample drops out instead of blocking all), plus **FastQC** (`afterany` on CIRI2) and **flagstat** (`afterany` on BWA — mapping-rate summary). `bash job_inchain_totalRNAseq.sh` on a login node — submits the five jobs, exits in seconds, then you can log off | [job_inchain_totalRNAseq.sh](job_inchain_totalRNAseq.sh) |
-| 7 | Downstream: `prep_CIRIquant` matrices (corrected + uncorrected), `CIRI_DE_replicate` (edgeR) tumor vs normal, annotate circRNAs with the 6b validation flag | *outlined* |
+| 7a | Downstream: `prep_CIRIquant` + `prepDE.py` matrices, corrected (primary) + uncorrected (sensitivity) | [build_ciriquant_matrix.sbatch](build_ciriquant_matrix.sbatch) |
+| 7b | Downstream: `CIRI_DE_replicate` (edgeR) tumor vs normal, paired by `patient_id`. Annotating circRNAs with the 6b validation flag is still *outlined only* | [run_ciri_de.sbatch](run_ciri_de.sbatch) |
 
 Total RNA-seq per-sample outputs are written under `.../total_RNAseq/` sub-dirs
 (`trimmed/total_RNAseq/`, `QC/total_RNAseq/`, `bwa_mapped/total_RNAseq/`,
@@ -57,12 +58,33 @@ conventions) is in
 
 ## Environments
 
-Two conda envs (RSeQC is not compatible with the Python in the main env, so it is
-called via `conda run -n rseqc ...`):
+Six conda envs total; full package lists, version pins, create commands, and
+which script uses which are in
+[software_requirements.md](software_requirements.md). Summary:
 
-- **`circrna`**: fastqc, fastp, bwa, hisat2, stringtie, samtools, ciriquant,
-  seqtk, ucsc-gtftogenepred, ucsc-genepredtobed
-- **`rseqc`**: python=3.11, rseqc>=5
+- **`circrna`**: fastqc, fastp, bwa, hisat2, stringtie, samtools, ciri2, seqtk,
+  ucsc-gtftogenepred, ucsc-genepredtobed. General-purpose env for everything
+  except invoking CIRIquant's own executables.
+- **`CIRIquant_github_env`**: the official CIRIquant v1.1.3 release, installed
+  per the developers' own documented method (CIRI-cookbook pinned
+  `environment.yml` -- python=2.7.15, pysam==0.15.2, etc.), on its natively
+  supported Python 2 interpreter. Replaces an earlier `ciriquant` env
+  (bioconda build, patched for Python 3.11) that kept surfacing new upstream
+  Python-2-only bugs one at a time across multi-hour runs; py2 has been
+  running cleanly and that env/its patches are retired.
+- **`ciriDE`**: R + edgeR/limma/statmod/optparse for step 7b's
+  `CIRI_DE_replicate` -- kept in its **own** env rather than installed into
+  `ciriquant`, because `CIRI_DE_replicate` just shells out to whatever
+  `Rscript` is on `PATH` (no rpy2), and CIRIquant's docs-recommended
+  `r-base=3.6` pin fails to solve against `ciriquant`'s already-modern
+  pysam/openssl stack. Channel order matters here too -- conda-forge must come
+  first, or bioconda's r-base build crashes at runtime needing an obsolete
+  `libgfortran.so.3`: `conda create -n ciriDE -c conda-forge -c bioconda
+  r-base bioconductor-edger bioconductor-limma r-statmod r-optparse`.
+- **`rseqc`**: python=3.11, rseqc>=5 -- not compatible with the other envs'
+  Python, so it's called via `conda run -n rseqc ...` rather than activated.
+- **`sortmerna`**: sortmerna=4.3.7, called via `conda run -n sortmerna ...`.
+- **`dupradar`**: bioconductor-dupradar, called via `conda run -n dupradar ...`.
 
 ## Before you run
 
@@ -85,9 +107,10 @@ These scripts are **not runnable as-is** — edit them for your environment:
    `build_bsj_validation.sbatch`):** array ranges are hard-coded to `1-65`
    (rnaseq samples with real paired FASTQ paths); recount with the
    `awk … | wc -l` in each script header if the sample sheet changes.
-   `run_ciriquant_totalRNAseq.sbatch` defaults `LIBRARY_TYPE=2` for the rnaseq
-   libraries (a different prep/batch from the circRNA-seq set) — confirm first
-   with step 0's infer script pointed at an rnaseq sample.
+   `run_ciriquant_RNaseR_corrected_py2.sbatch` defaults `LIBRARY_TYPE=2` for
+   the rnaseq libraries (a different prep/batch from the circRNA-seq set) —
+   confirmed reverse-stranded for this dataset (both batches checked; see
+   step 0).
    `job_inchain_totalRNAseq.sh` submits trim → BWA → CIRI2 (`aftercorr`) plus
    FastQC (`afterany` CIRI2) and flagstat (`afterany` BWA); CIRIquant (6a) and
    the strandedness check are run separately.

@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH -J ciriquant_totalRNAseq
+#SBATCH -J ciriquant_RNaseR_corrected_py2
 #SBATCH --partition acpu
 #SBATCH --account=amc-general
-#SBATCH -o /scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis/slurm_out/ciriquant_totalRNAseq_%A_%a.out
-#SBATCH -e /scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis/slurm_out/ciriquant_totalRNAseq_%A_%a.err
+#SBATCH -o /scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis/slurm_out/ciriquant_RNaseR_corrected_py2_%A_%a.out
+#SBATCH -e /scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis/slurm_out/ciriquant_RNaseR_corrected_py2_%A_%a.err
 #SBATCH -t 16:00:00    # per-sample wall time (D-HH:MM:SS); BWA + HISAT2 + StringTie
 #SBATCH --qos=cpu-normal
 #SBATCH -n 1 -c 8       # 8 cores -> CIRIquant -t 8
@@ -12,7 +12,7 @@
 
 #
 # NOT part of job_inchain_totalRNAseq.sh -- run this separately, and only after
-# run_ciriquant_circRNA.sbatch has finished for the matched samples.
+# run_ciriquant_circRNA_py2.sbatch has finished for the matched samples.
 
 ## 65 = total RNA-seq samples (modality "rnaseq" with real paired FASTQ paths).
 ## ~8 have no circRNA-seq counterpart -> those tasks exit 0 (skip). Recount with:
@@ -20,19 +20,25 @@
 #       /projects/$USER/HNSCC_analysis/scripts/master_samplesheet.csv | wc -l
 
 # ---------------------------------------------------------------------------
-# STEP 6a (RNase R effect correction) -- see circRNA_analysis_pipeline_outline.txt
+# STEP 6a (RNase R effect correction), see circRNA_analysis_pipeline_outline.txt
+#
+# Runs in the `CIRIquant_github_env` env: the official CIRIquant v1.1.3
+# release on its natively supported Python 2 interpreter -- see
+# run_ciriquant_circRNA_py2.sbatch for why this is the primary/only CIRIquant
+# path for this pipeline (an earlier patched bioconda/Python 3.11 build kept
+# surfacing new upstream Python-2-only bugs; that env is retired).
 #
 # Runs CIRIquant on the matched RNase R(-) total RNA-seq library with --RNaseR
 # pointing at that sample's RNase R(+) CIRIquant result from
-# run_ciriquant_circRNA.sbatch. CIRIquant detects circRNAs in this mock library,
-# takes the overlap with the RNase R(+) circRNA set, fits a Gaussian mixture
+# run_ciriquant_circRNA_py2.sbatch. CIRIquant detects circRNAs in this mock
+# library, takes the overlap with the RNase R(+) set, fits a Gaussian mixture
 # model to the per-circRNA enrichment ratios, and writes enrichment-corrected
-# (pre-treatment) expression. The header of the output gtf carries the estimated
-# RNase R efficiency.
+# (pre-treatment) expression. The header of the output gtf carries the
+# estimated RNase R efficiency.
 #
 # KEEPS BOTH:
-#   uncorrected  = ${ANALYSIS_DIR}/ciriquant/<circRNA sample>/...       (untouched)
-#   corrected    = ${OUTDIR}/<rnaseq sample>/<rnaseq sample>.gtf        (this script)
+#   uncorrected  = ${ANALYSIS_DIR}/circRNAseq/ciriquant_noRNaseRcorrection_py2/<circRNA sample>/...  (untouched)
+#   corrected    = ${OUTDIR}/<rnaseq sample>/<rnaseq sample>.gtf                                      (this script)
 #
 # Pairing (sample_id = <patient>_<tissue>_<modality>):
 #   TP#####_tumor_rnaseq   <->   TP#####_tumor_circrnaseq
@@ -47,7 +53,7 @@
 # !!! LIBRARY_TYPE below is NOT confirmed for the rnaseq libraries. They are a
 # different prep/batch from the circRNA-seq set -- do NOT assume they are also
 # reverse. Confirm first: point run_infer_strandedness_test.sbatch at one
-# trimmed rnaseq sample (edit SAMPLE + the _circrnaseq_ infix) and set the value.
+# trimmed rnaseq sample and set the value.
 # ---------------------------------------------------------------------------
 
 set -euo pipefail
@@ -57,13 +63,22 @@ set -euo pipefail
 ###########
 module purge
 module load miniforge
-#activate my ciriquant env (bwa=0.7.17, hisat2=2.2.0, stringtie=2.1.1, samtools>=1.10, ciriquant, python=3.9)
-#separate from circrna env because CIRIquant breaks on python>=3.12 (distutils removed)
-conda activate ciriquant
+# CIRIquant_github_env: official CIRIquant v1.1.3 install (CIRI-cookbook
+# Method 2 pinned environment.yml -- python=2.7.15, pysam==0.15.2, etc.).
+#
+# set +u around activation only: this env's compiler-toolchain packages
+# (binutils_linux-64 and friends) ship activate.d hook scripts that reference
+# variables like $ADDR2LINE without a default -- fine under normal bash, but
+# fatal ("unbound variable") under our set -u. Not a problem with the env;
+# just an under-defensive activation script. Restore -u immediately after.
+set +u
+conda activate CIRIquant_github_env
+set -u
 
 echo ____________________________________
 which CIRIquant bwa hisat2 stringtie samtools
 CIRIquant --version 2>&1 | head -1 || true
+python --version 2>&1 || true
 echo ____________________________________
 
 ###########
@@ -71,9 +86,9 @@ echo ____________________________________
 ###########
 SAMPLESHEET="/projects/$USER/HNSCC_analysis/scripts/master_samplesheet.csv"
 ANALYSIS_DIR="/scratch/alpine/$USER/HNSCC_analysis/my_circRNAseq_analysis"
-TRIMDIR="${ANALYSIS_DIR}/total_RNAseq/trimmed"          # trimmed FASTQs from run_fastp_totalRNAseq.sbatch
-CIRC_CIRIQUANT_DIR="${ANALYSIS_DIR}/circRNAseq/ciriquant_noRNaseRcorrection"   # RNase R(+) results from run_ciriquant_circRNA.sbatch
-OUTDIR="${ANALYSIS_DIR}/ciriquant/total_RNAseq"         # enrichment-corrected results
+TRIMDIR="${ANALYSIS_DIR}/total_RNAseq/trimmed"          # trimmed FASTQs from run_fastp_totalRNAseq.sbatch (shared, unchanged)
+CIRC_CIRIQUANT_DIR="${ANALYSIS_DIR}/circRNAseq/ciriquant_noRNaseRcorrection_py2"   # RNase R(+) results from run_ciriquant_circRNA_py2.sbatch
+OUTDIR="${ANALYSIS_DIR}/ciriquant_py2"         # enrichment-corrected results, SEPARATE from the py3 OUTDIR
 THREADS="${SLURM_CPUS_PER_TASK:-8}"
 
 LIBRARY_TYPE="${LIBRARY_TYPE:-2}"             # !!! CONFIRM for rnaseq (see header). 0 unstr / 1 fwd / 2 rev
@@ -110,7 +125,7 @@ echo "sample ${SM}"
 R1="${TRIMDIR}/${SM}_R1.fq.gz"
 R2="${TRIMDIR}/${SM}_R2.fq.gz"
 
-# Matched RNase R(+) circRNA-seq CIRIquant result
+# Matched RNase R(+) circRNA-seq CIRIquant result (py2 run)
 CIRC_SM="${SM%${RNA_MODALITY_SUFFIX}}${CIRC_MODALITY_SUFFIX}"
 RNASER_GTF="${CIRC_CIRIQUANT_DIR}/${CIRC_SM}/${CIRC_SM}.gtf"
 echo "matched circRNA-seq sample: ${CIRC_SM}"
@@ -135,11 +150,10 @@ fi
 ###########
 # Working CIRIquant config (absolute tool paths from this env); one per task
 ###########
-# Same template as run_ciriquant_circRNA.sbatch / ciriquant_config.yaml.
 CONFIG="$(mktemp "${OUTDIR}/config.${SM}.XXXXXX.yaml")"
 trap 'rm -f "${CONFIG}"' EXIT
 cat > "${CONFIG}" <<YAML
-name: hg38_gencode_v50
+name: hg38_gencode_v50_py2
 tools:
   bwa: $(command -v bwa)
   hisat2: $(command -v hisat2)
@@ -158,9 +172,18 @@ echo "library-type: ${LIBRARY_TYPE}"
 # Quantify + RNase R correction
 ###########
 GTF_OUT="${OUTDIR}/${SM}/${SM}.gtf"
-if [[ -s "${GTF_OUT}" ]]; then
-    echo "${SM}: ${GTF_OUT} already exists, skipping CIRIquant"
+GTF_IS_COMPLETE=0
+if [[ -s "${GTF_OUT}" ]] && [[ "$(awk '$3=="circRNA"' "${GTF_OUT}" | wc -l)" -gt 0 ]]; then
+    GTF_IS_COMPLETE=1
+fi
+
+if [[ "${GTF_IS_COMPLETE}" -eq 1 ]]; then
+    echo "${SM}: ${GTF_OUT} already exists with circRNA rows, skipping CIRIquant"
 else
+    if [[ -s "${GTF_OUT}" ]]; then
+        echo "${SM}: ${GTF_OUT} exists but has 0 circRNA rows -- stale/incomplete output from an earlier failed run; removing and re-running"
+        rm -rf "${OUTDIR}/${SM}"
+    fi
     CIRIquant \
         -t "${THREADS}" \
         -1 "${R1}" -2 "${R2}" \

@@ -19,7 +19,7 @@
 #
 # These are the matched RNase R(-) libraries for the same samples as the
 # circRNA-seq set. Processed for two purposes:
-#   (a) RNase R effect correction   -> run_ciriquant_totalRNAseq.sbatch
+#   (a) RNase R effect correction   -> run_ciriquant_RNaseR_corrected_py2.sbatch
 #   (b) orthogonal validation       -> run_bwa/ciri2_totalRNAseq.sbatch +
 #       (which circRNAs are seen        build_bsj_validation.sbatch
 #        in non-enriched data too)

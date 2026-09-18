@@ -25,7 +25,7 @@
 # CIRI2 detection is comparable between the two data sets.
 #
 # NOTE: this is only for the orthogonal validation. The RNase R *correction*
-# (run_ciriquant_totalRNAseq.sbatch) does its own alignment internally and does
+# (run_ciriquant_RNaseR_corrected_py2.sbatch) does its own alignment internally and does
 # NOT need this SAM.
 #
 # Input : trimmed FASTQs from run_fastp_totalRNAseq.sbatch

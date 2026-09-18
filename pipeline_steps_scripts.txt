@@ -9,22 +9,24 @@ CIRCRNA-SEQ BRANCH
 3   BWA index (once)                run_bwa_index.sbatch
 3   Map                             run_bwa_circRNA.sbatch
 3   Mapping QC                      run_flagstat_circRNA.sbatch
-4   CIRI2 detection                 run_ciri2_circRNA.sbatch
-4b  Locate CIRI2.pl                 check_ciri2.sh
-4c  Consensus BSJ set               build_bsj_consensus.sbatch
-5   Quantify (uncorrected)          run_ciriquant_circRNA.sbatch, ciriquant_config.yaml
+4   CIRI2 detection                 
+    4a  Locate CIRI2.pl             check_ciri2.sh
+    4b  Consensus BSJ set           build_bsj_consensus.sbatch
+    4c  run CIRI2                   run_ciri2_circRNA.sbatch
+5   Quantify (uncorrected)          run_ciriquant_circRNA_py2.sbatch, ciriquant_config.yaml
+6   Total RNA-seq circRNA analysis  see steps below
+7   Quantify (RNase R corrected)    run_ciriquant_RNaseR_corrected_py2.sbatch
+8   DE analysis                     
+    8a  DE matrices (prep_CIRIquant + prepDE.py)        build_ciriquant_matrix.sbatch
+    8b  DE test, tumor vs normal (CIRI_DE_replicate)    run_ciri_de.sbatch
+
 
 TOTAL RNA-SEQ BRANCH
 ---------------------
+(steps 1-4 + QC as one chain)       job_inchain_totalRNAseq.sh
 1   Raw QC                          run_fastqc_totalRNAseq.sbatch
 2   Trim                            run_fastp_totalRNAseq.sbatch
 3   Map                             run_bwa_totalRNAseq.sbatch
 3   Mapping QC                      run_flagstat_totalRNAseq.sbatch
 4   CIRI2 detection                 run_ciri2_totalRNAseq.sbatch
-    (steps 1-4 + QC as one chain)   job_inchain_totalRNAseq.sh
-6a  RNase R correction              run_ciriquant_totalRNAseq.sbatch
-6b  Validation                      build_bsj_validation.sbatch
 
-DOWNSTREAM
------------
-7   DE matrices / tumor vs normal   prep_CIRIquant, CIRI_DE_replicate  (not yet scripted)
